@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -141,6 +142,15 @@ public class VDM extends JFrame implements Observer {
             fileOutputStream.getChannel()
                     .transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
         }
+        genData();
+
+        addTextField.setText("");
+
+    }
+
+
+    private ArrayList genData() throws IOException {
+
 
         File f = new File("list.m3u");
         BufferedReader b = new BufferedReader(new FileReader(f));
@@ -149,6 +159,8 @@ public class VDM extends JFrame implements Observer {
 
         ArrayList<Element> elements = new ArrayList<>();
         int i = 0;
+
+
         while ((readLine = b.readLine()) != null) {
 
             if (readLine.startsWith("#EXTINF:-1")) {
@@ -162,11 +174,11 @@ public class VDM extends JFrame implements Observer {
             }
         }
 
-        HashMap<String,String> srs = new HashMap<>();
+        HashMap<String, Integer> srs = new HashMap<>();
         Stream<Element> stream = elements.stream();
         stream.forEach(n -> {
             if (n.getUrl() != null) {
-                srs.put(n.getGroup_title(), n.getChannel_id().substring(n.getChannel_id().length()-8));
+                srs.put(n.getGroup_title(), Integer.valueOf(n.getChannel_id().substring(n.getChannel_id().length() - 7, n.getChannel_id().length() - 5).trim()));
             }
 
             /*if (n.getUrl() != null) {
@@ -174,18 +186,95 @@ public class VDM extends JFrame implements Observer {
             }*/
 
         });
-        i = 0;
-        for (String serie : srs.keySet()) {
+       /* ArrayList<Serie> series = new ArrayList<Serie>();
+        for(String title : srs.keySet()){
 
-                int tem =Integer.valueOf(srs.get(serie).substring(1,3).trim());
-                int ep =Integer.valueOf(srs.get(serie).trim().substring(5));
+            ArrayList<Temporada> temporadas =new ArrayList<Temporada>();
+            for ( i=0;i<srs.get(title);i++){
+                temporadas.add(new Temporada(i+1));
+            }
+            Serie serie = new Serie(title);
+            serie.setTemporadas(temporadas);
+            series.add(serie);
+        }*/
 
-                selectComboBox.addItem(serie+" ("+tem+" Temporada(s) de "+ep+" episodios)");
 
+        ArrayList<Serie> series = new ArrayList<Serie>();
+        for (Element element : elements) {
+            try {
+                Serie serie;
+                Temporada temporada;
+
+                int temp = Integer.valueOf(element.getChannel_id().substring(element.getChannel_id().length() - 7,
+                        element.getChannel_id().length() - 5).trim());
+
+
+                if (indexSerie(series, element.getGroup_title()) < 0) {
+                    series.add(new Serie(element.getGroup_title()));
+                }
+                serie = series.get(indexSerie(series, element.getGroup_title()));
+
+
+                if (indexTemporada(serie.getTemporadas(), temp) < 0) {
+
+                    serie.getTemporadas().add(new Temporada(temp));
+                }
+                temporada = serie.getTemporadas().get(indexTemporada(serie.getTemporadas(), temp));
+
+
+                Episodio episodio = new Episodio(element.getUrl(), element.getTvg_logo(),element.getChannel_id(), serie, temporada);
+
+                temporada.getEpisodios().add(episodio);
+
+
+            }catch (Exception e){
+            }
         }
 
-        addTextField.setText("");
 
+        for (Element element : elements) {
+
+        }
+        i = 0;
+       /* for (String serie : srs.keySet()) {
+
+            int tem = Integer.valueOf(srs.get(serie).substring(1, 3).trim());
+            int ep = Integer.valueOf(srs.get(serie).trim().substring(5));
+
+            selectComboBox.addItem(serie + " (" + tem + " Temporada(s), " + tem * ep + " episodios aprox.)");
+
+        }*/
+
+
+        return series;
+    }
+
+    private int indexSerie(ArrayList<Serie> series, String title) {
+        try {
+            for (Serie serie : series) {
+                if (serie.getTitulo().equals(title)) {
+                    return series.indexOf(serie);
+                }
+            }
+            return -1;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    private int indexTemporada(ArrayList<Temporada> temporadas, int nro) {
+        try {
+            for (Temporada temporada : temporadas) {
+                if (temporada.getNro() == nro) {
+                    return temporadas.indexOf(temporada);
+                }
+            }
+            return -1;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
     }
 
     private URL verifyUrl(String url) {
