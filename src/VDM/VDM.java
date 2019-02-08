@@ -4,16 +4,18 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Observable;
+import java.util.Observer;
 
 public class VDM extends JFrame implements Observer {
 
     private boolean ready;
+
     private JTextField addTextField;
     private JComboBox<String> selectComboBox;
     private JTable table;
@@ -447,6 +449,7 @@ public class VDM extends JFrame implements Observer {
         if (selectedDownload != null && selectedDownload.equals(o)) {
             updateButtons();
         }
+
 
     }
 

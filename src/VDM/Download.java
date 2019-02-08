@@ -63,11 +63,11 @@ class Download extends Observable implements Runnable {
     }
     // Get download speed.
     float getSpeed() {
-        return speed/1024;
+        return speed;
     }
     // Get average speed
     float getAvgSpeed() {
-        return avgSpeed/1024;
+        return avgSpeed;
     }
     // Get elapsed time
     String getElapsedTime() {
@@ -127,7 +127,8 @@ class Download extends Observable implements Runnable {
     }
      
     // Start or resume downloading.
-     void download() {
+
+     private void download() {
         Thread thread = new Thread(this);
         thread.start();
     }
@@ -179,7 +180,7 @@ class Download extends Observable implements Runnable {
             // used to update speed at regular intervals
             int i=0;
             // Open file and seek to the end of it.
-            String path="C:/VDM/"+this.episodio.getSerie().getTitulo()+"/"+episodio.getTemporada().getNro()+"/";
+            String path="C:/SERVER/Plex/VOD Series/"+this.episodio.getSerie().getTitulo()+"/"+episodio.getTemporada().getNro()+"/";
             new File(path).mkdirs();
 
             file = new RandomAccessFile(path+getFileName(url), "rw");

@@ -21,6 +21,10 @@ class DownloadsTableModel extends AbstractTableModel
     // The table's list of downloads.
     private ArrayList<Download> downloadList = new ArrayList<>();
 
+    public ArrayList<Download> getDownloadList() {
+        return downloadList;
+    }
+
     // Add a new download to the table.
      void addDownload(Download download) {
 
@@ -103,9 +107,9 @@ class DownloadsTableModel extends AbstractTableModel
             case 2: // Progress
                 return download.getProgress();
             case 3: //Speed
-                return download.getSpeed();
+                return String.valueOf(download.getSpeed()).substring(0,String.valueOf(download.getSpeed()).indexOf(".")+2);
             case 4: //Avg Speed
-                return download.getAvgSpeed();
+                return String.valueOf(download.getAvgSpeed()).substring(0,String.valueOf(download.getAvgSpeed()).indexOf(".")+2);
             case 5: //Elapsed Time
                 return download.getElapsedTime();
             case 6: //Remaining Time
