@@ -225,10 +225,10 @@ class Download extends Observable implements Runnable {
 
       /* Change status to complete if this point was
          reached because downloading has finished. */
-            if (status == DOWNLOADING) {
+            if ((status == DOWNLOADING)&&(downloaded==this.size)) {
                 status = COMPLETE;
                 stateChanged();
-            }
+            }else {throw new Exception();}
         } catch (Exception e) {
             System.out.println(e);
             error();
