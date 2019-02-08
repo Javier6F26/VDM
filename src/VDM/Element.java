@@ -6,17 +6,15 @@ import java.util.ArrayList;
 
 public class Element {
 
-    private String channel_idN, tvg_id  , channel_id , group_title;
-    URL url, tvg_logo ;
+    private String channel_idN, tvg_id, channel_id, group_title;
+    private URL url, tvg_logo;
 
     Element(String channel_idN, String tvg_id, String tvg_logo, String channel_id, String group_title) {
         this.channel_idN = channel_idN;
         this.tvg_id = tvg_id;
         try {
             this.tvg_logo = new URL(tvg_logo);
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
+        } catch (MalformedURLException e) { }
         this.channel_id = channel_id;
         this.group_title = group_title;
     }
@@ -30,20 +28,19 @@ public class Element {
     }
 
 
-
-    public URL getTvg_logo() {
+    URL getTvg_logo() {
         return tvg_logo;
     }
 
-    public String getChannel_id() {
+    String getChannel_id() {
         return channel_id;
     }
 
-    public String getGroup_title() {
+    String getGroup_title() {
         return group_title;
     }
 
-    public URL getUrl() {
+    URL getUrl() {
         return url;
     }
 
@@ -52,40 +49,41 @@ public class Element {
     }
 }
 
-class Serie{
+class Serie {
 
     private String titulo;
     private ArrayList<Temporada> temporadas;
 
-    public Serie(String titulo) {
+    Serie(String titulo) {
         this.titulo = titulo;
-        this.temporadas=new ArrayList<Temporada>();
+        this.temporadas = new ArrayList<Temporada>();
     }
 
-    public String getTitulo() {
+    String getTitulo() {
         return titulo;
     }
 
     public void setTemporadas(ArrayList<Temporada> temporadas) {
-        for(Temporada temporada :temporadas ){
+        for (Temporada temporada : temporadas) {
             temporada.setSerie(this);
         }
         this.temporadas = temporadas;
     }
 
-    public ArrayList<Temporada> getTemporadas() {
+    ArrayList<Temporada> getTemporadas() {
         return temporadas;
     }
 }
-class Temporada{
+
+class Temporada {
 
     private Serie serie;
     private int nro;
-    ArrayList<Episodio> episodios;
+    private ArrayList<Episodio> episodios;
 
-    public Temporada(int nro) {
+    Temporada(int nro) {
         this.nro = nro;
-        this.episodios=new ArrayList<Episodio>();
+        this.episodios = new ArrayList<Episodio>();
 
     }
 
@@ -93,20 +91,20 @@ class Temporada{
         return serie;
     }
 
-    public int getNro() {
+    int getNro() {
         return nro;
     }
 
-    public void setSerie(Serie serie) {
+    void setSerie(Serie serie) {
         this.serie = serie;
     }
 
-    public ArrayList<Episodio> getEpisodios() {
+    ArrayList<Episodio> getEpisodios() {
         return episodios;
     }
 }
 
-class Episodio{
+class Episodio {
 
     private URL url;
     private URL logo;
@@ -114,10 +112,10 @@ class Episodio{
     private Temporada temporada;
     private String name;
 
-    public Episodio(URL url, URL logo,String name, Serie serie, Temporada temporada) {
+    Episodio(URL url, URL logo, String name, Serie serie, Temporada temporada) {
         this.url = url;
         this.logo = logo;
-        this.name =name;
+        this.name = name;
         this.serie = serie;
         this.temporada = temporada;
     }
@@ -152,5 +150,9 @@ class Episodio{
 
     public void setTemporada(Temporada temporada) {
         this.temporada = temporada;
+    }
+
+    public String getName() {
+        return name;
     }
 }

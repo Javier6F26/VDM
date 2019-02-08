@@ -13,7 +13,7 @@ import java.util.stream.Stream;
 
 public class VDM extends JFrame implements Observer {
 
-
+    private boolean ready;
     private JTextField addTextField;
     private JComboBox<String> selectComboBox;
     private JTable table;
@@ -22,11 +22,12 @@ public class VDM extends JFrame implements Observer {
 
     private DownloadsTableModel tableModel;
     private Download selectedDownload;
-
+    private ArrayList<Serie> series;
     private boolean clearing;
 
 
     private VDM() {
+
         // Set application title.
         setTitle("VOD Download Manager");
 
@@ -65,14 +66,44 @@ public class VDM extends JFrame implements Observer {
         });
         addPanel.add(addButton);
         selectComboBox = new JComboBox<>();
+        selectComboBox.addMouseListener(new MouseListener() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+
+                addDownload();
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+
+            }
+        });
+
         addPanel.add(selectComboBox);
 
         // Set up Downloads table.
         tableModel = new DownloadsTableModel();
         table = new JTable(tableModel);
+        table.setRowSelectionAllowed(true);
+        table.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         table.getSelectionModel().addListSelectionListener(e -> tableSelectionChanged());
         // Allow only one row at a time to be selected.
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
 
         // Set up ProgressBar as renderer for progress column.
         ProgressRenderer renderer = new ProgressRenderer(0, 100);
@@ -130,6 +161,8 @@ public class VDM extends JFrame implements Observer {
 
     private void actionAdd() throws IOException {
 
+        ready = false;
+        series = genData();
         if (verifyUrl(addTextField.getText()) != null) {
 
             URL url = verifyUrl(addTextField.getText());
@@ -142,14 +175,23 @@ public class VDM extends JFrame implements Observer {
             fileOutputStream.getChannel()
                     .transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
         }
-        genData();
 
+        for (Serie serie : series) {
+            int capitulos = 0;
+            for (Temporada temporada : serie.getTemporadas()) {
+                capitulos += temporada.getEpisodios().size();
+            }
+
+            selectComboBox.addItem(serie.getTitulo() + " (" + serie.getTemporadas().size() + " Temporadas, " + capitulos + " Capitulos)");
+        }
+
+        ready = true;
         addTextField.setText("");
 
     }
 
 
-    private ArrayList genData() throws IOException {
+    private ArrayList<Serie> genData() throws IOException {
 
 
         File f = new File("list.m3u");
@@ -174,32 +216,13 @@ public class VDM extends JFrame implements Observer {
             }
         }
 
-        HashMap<String, Integer> srs = new HashMap<>();
-        Stream<Element> stream = elements.stream();
-        stream.forEach(n -> {
-            if (n.getUrl() != null) {
-                srs.put(n.getGroup_title(), Integer.valueOf(n.getChannel_id().substring(n.getChannel_id().length() - 7, n.getChannel_id().length() - 5).trim()));
-            }
 
-            /*if (n.getUrl() != null) {
+
+  /*if (n.getUrl() != null) {
                 tableModel.addDownload(new Download(n.getUrl()));
             }*/
 
-        });
-       /* ArrayList<Serie> series = new ArrayList<Serie>();
-        for(String title : srs.keySet()){
-
-            ArrayList<Temporada> temporadas =new ArrayList<Temporada>();
-            for ( i=0;i<srs.get(title);i++){
-                temporadas.add(new Temporada(i+1));
-            }
-            Serie serie = new Serie(title);
-            serie.setTemporadas(temporadas);
-            series.add(serie);
-        }*/
-
-
-        ArrayList<Serie> series = new ArrayList<Serie>();
+        ArrayList<Serie> series = new ArrayList<>();
         for (Element element : elements) {
             try {
                 Serie serie;
@@ -210,7 +233,7 @@ public class VDM extends JFrame implements Observer {
 
 
                 if (indexSerie(series, element.getGroup_title()) < 0) {
-                    series.add(new Serie(element.getGroup_title()));
+                    series.add(new Serie(element.getGroup_title().trim()));
                 }
                 serie = series.get(indexSerie(series, element.getGroup_title()));
 
@@ -222,30 +245,16 @@ public class VDM extends JFrame implements Observer {
                 temporada = serie.getTemporadas().get(indexTemporada(serie.getTemporadas(), temp));
 
 
-                Episodio episodio = new Episodio(element.getUrl(), element.getTvg_logo(),element.getChannel_id(), serie, temporada);
+                Episodio episodio = new Episodio(element.getUrl(), element.getTvg_logo(), element.getChannel_id().trim(), serie, temporada);
 
                 temporada.getEpisodios().add(episodio);
 
 
-            }catch (Exception e){
+            } catch (Exception e) {
             }
         }
 
-
-        for (Element element : elements) {
-
-        }
-        i = 0;
-       /* for (String serie : srs.keySet()) {
-
-            int tem = Integer.valueOf(srs.get(serie).substring(1, 3).trim());
-            int ep = Integer.valueOf(srs.get(serie).trim().substring(5));
-
-            selectComboBox.addItem(serie + " (" + tem + " Temporada(s), " + tem * ep + " episodios aprox.)");
-
-        }*/
-
-
+        series.sort(Comparator.comparing(p -> p.getTitulo()));
         return series;
     }
 
@@ -295,6 +304,26 @@ public class VDM extends JFrame implements Observer {
             return null;
 
         return verifiedUrl;
+    }
+
+    private void addDownload() {
+
+
+        Serie serie = series.get(selectComboBox.getSelectedIndex());
+
+        int limit = 1;
+        int i = 0;
+        for (Temporada temporada : serie.getTemporadas()) {
+            for (Episodio episodio : temporada.getEpisodios()) {
+                if (i < limit) {
+                    tableModel.addDownload(new Download(episodio, true));
+                    i++;
+                } else {
+                    tableModel.addDownload(new Download(episodio, false));
+                }
+            }
+        }
+
     }
 
     private void tableSelectionChanged() {
@@ -359,6 +388,12 @@ public class VDM extends JFrame implements Observer {
                     cancelButton.setEnabled(false);
                     clearButton.setEnabled(true);
                     break;
+                case Download.WAITING:
+                    pauseButton.setEnabled(false);
+                    resumeButton.setEnabled(true);
+                    cancelButton.setEnabled(false);
+                    clearButton.setEnabled(true);
+                    break;
                 default: // COMPLETE or CANCELLED
                     pauseButton.setEnabled(false);
                     resumeButton.setEnabled(false);
@@ -409,7 +444,10 @@ public class VDM extends JFrame implements Observer {
 
     @Override
     public void update(Observable o, Object arg) {
-        if (selectedDownload != null && selectedDownload.equals(o))
+        if (selectedDownload != null && selectedDownload.equals(o)) {
             updateButtons();
+        }
+
     }
+
 }

@@ -12,17 +12,17 @@ class DownloadsTableModel extends AbstractTableModel
 
     // These are the names for the table's columns.
     private static final String[] columnNames = {"URL", "Size in MB", "Progress", "Speed in KB/s",
-            "Avg Speed in KB/s", "Elapsed Time", "Remaing Time" ,"Status"};
+            "Avg Speed in KB/s", "Elapsed Time", "Remaing Time" ,"Status","Pause"};
 
     // These are the classes for each column's values.
     private static final Class[] columnClasses = {String.class, String.class,
-            JProgressBar.class, String.class, String.class, String.class, String.class, String.class};
+            JProgressBar.class, String.class, String.class, String.class, String.class, String.class,JButton.class};
 
     // The table's list of downloads.
-    private ArrayList<Download> downloadList = new ArrayList<Download>();
+    private ArrayList<Download> downloadList = new ArrayList<>();
 
     // Add a new download to the table.
-    public void addDownload(Download download) {
+     void addDownload(Download download) {
 
         // Register to be notified when the download changes.
         download.addObserver(this);
@@ -32,14 +32,38 @@ class DownloadsTableModel extends AbstractTableModel
         // Fire table row insertion notification to table.
         fireTableRowsInserted(getRowCount() - 1, getRowCount() - 1);
     }
+    private void resumeDownloads(){
+
+         for (Download download:downloadList){
+             if ((download.getStatus()==5)||(download.getStatus()==0)){
+                 download.resume();
+                 break;
+             }
+         }
+    }
+
+    private void pauseAll(){
+
+        for (Download download:downloadList){
+           download.pause();
+        }
+    }
+
+    private void resumeAll(){
+
+        for (Download download:downloadList){
+            download.resume();
+
+        }
+    }
 
     // Get a download for the specified row.
-    public Download getDownload(int row) {
+    Download getDownload(int row) {
         return downloadList.get(row);
     }
 
     // Remove a download from the list.
-    public void clearDownload(int row) {
+    void clearDownload(int row) {
         downloadList.remove(row);
 
         // Fire table row deletion notification to table.
@@ -72,12 +96,12 @@ class DownloadsTableModel extends AbstractTableModel
         Download download = downloadList.get(row);
         switch (col) {
             case 0: // URL
-                return download.getUrl();
+                return download.getEpisodio().getName();
             case 1: // Size
                 long size = download.getSize();
                 return (size == -1) ? "" : Float.toString((float)size/1048576);
             case 2: // Progress
-                return new Float(download.getProgress());
+                return download.getProgress();
             case 3: //Speed
                 return download.getSpeed();
             case 4: //Avg Speed
@@ -97,6 +121,12 @@ class DownloadsTableModel extends AbstractTableModel
     public void update(Observable o, Object arg) {
         int index = downloadList.indexOf(o);
         // Fire table row update notification to table.
+        if ((downloadList.get(index).getStatus() < 5) && (downloadList.get(index).getStatus() > 0)) {
+            resumeDownloads();
+        }
+
         fireTableRowsUpdated(index, index);
+
+
     }
 }

@@ -1,9 +1,11 @@
 package VDM;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Observable;
 
 // This class downloads a file from a URL.
@@ -14,7 +16,7 @@ class Download extends Observable implements Runnable {
      
     // These are the status names.
     public static final String STATUSES[] = {"Downloading",
-    "Paused", "Complete", "Cancelled", "Error"};
+    "Paused", "Complete", "Cancelled", "Error","Waiting"};
      
     // These are the status codes.
     public static final int DOWNLOADING = 0;
@@ -22,8 +24,10 @@ class Download extends Observable implements Runnable {
     public static final int COMPLETE = 2;
     public static final int CANCELLED = 3;
     public static final int ERROR = 4;
-     
+    public static final int WAITING = 5;
+
     private URL url; // download URL
+    private Episodio episodio;
     private long size; // size of download in bytes
     private long downloaded; // number of bytes downloaded
     private int status; // current status of download
@@ -36,43 +40,46 @@ class Download extends Observable implements Runnable {
     private float avgSpeed=0; //average download speed in KB/s
     private float speed=0; //download speed in KB/s
     // Constructor for Download.
-    public Download(URL url) {
-        this.url = url;
+    Download(Episodio episodio, Boolean start) {
+
+
+        this.url = episodio.getUrl();
+        this.episodio=episodio;
         size = -1;
         downloaded = 0;
-        status = DOWNLOADING;
         // Begin the download.
-        download();
+
+        if(start){status = DOWNLOADING;download();}else{status=WAITING;}
     }
      
     // Get this download's URL.
-    public String getUrl() {
+     String getUrl() {
         return url.toString();
     }
      
     // Get this download's size.
-    public long getSize() {
+    long getSize() {
         return size;
     }
     // Get download speed.
-    public float getSpeed() {
-        return speed;
+    float getSpeed() {
+        return speed/1024;
     }
     // Get average speed
-    public float getAvgSpeed() {
-        return avgSpeed;
+    float getAvgSpeed() {
+        return avgSpeed/1024;
     }
     // Get elapsed time
-    public String getElapsedTime() {
+    String getElapsedTime() {
         return formatTime(elapsedTime/1000000000);
     }
     // Get remaining time
-    public String getRemainingTime() {
+    String getRemainingTime() {
         if(remainingTime<0)   return "Unknown";
         else    return formatTime(remainingTime);
     }
     // Format time
-    public String formatTime(long time) { //time in seconds
+    private String formatTime(long time) { //time in seconds
         String s="";
         s+=(String.format("%02d", time/3600))+":";
         time%=3600;
@@ -82,31 +89,31 @@ class Download extends Observable implements Runnable {
         return s;
     }
     // Get this download's progress.
-    public float getProgress() {
+    float getProgress() {
         return ((float) downloaded / size) * 100;
     }
      
     // Get this download's status.
-    public int getStatus() {
+    int getStatus() {
         return status;
     }
      
     // Pause this download.
-    public void pause() {
+    void pause() {
         prevElapsedTime=elapsedTime;
         status = PAUSED;
         stateChanged();
     }
      
     // Resume this download.
-    public void resume() {
+    void resume() {
         status = DOWNLOADING;
         stateChanged();
         download();
     }
      
     // Cancel this download.
-    public void cancel() {
+    void cancel() {
         prevElapsedTime=elapsedTime;
         status = CANCELLED;
         stateChanged();
@@ -120,45 +127,49 @@ class Download extends Observable implements Runnable {
     }
      
     // Start or resume downloading.
-    private void download() {
+     void download() {
         Thread thread = new Thread(this);
         thread.start();
     }
      
     // Get file name portion of URL.
     private String getFileName(URL url) {
-        String fileName = url.getFile();
-        return fileName.substring(fileName.lastIndexOf('/') + 1);
+
+        return this.episodio.getName()+ url.toString().substring(url.toString().lastIndexOf('.'));
     }
-     
+
+    public Episodio getEpisodio() {
+        return episodio;
+    }
+
     // Download file.
     public void run() {
         RandomAccessFile file = null;
         InputStream stream = null;
-         
+
         try {
             // Open connection to URL.
             HttpURLConnection connection =
                     (HttpURLConnection) url.openConnection();
-             
+
             // Specify what portion of file to download.
             connection.setRequestProperty("Range",
                     "bytes=" + downloaded + "-");
-             
+
             // Connect to server.
             connection.connect();
-             
+
             // Make sure response code is in the 200 range.
             if (connection.getResponseCode() / 100 != 2) {
                 error();
             }
-             
+
             // Check for valid content length.
             int contentLength = connection.getContentLength();
             if (contentLength < 1) {
                 error();
             }
-             
+
       /* Set the size for this download if it
          hasn't been already set. */
             if (size == -1) {
@@ -168,9 +179,13 @@ class Download extends Observable implements Runnable {
             // used to update speed at regular intervals
             int i=0;
             // Open file and seek to the end of it.
-            file = new RandomAccessFile(getFileName(url), "rw");
+            String path="C:/VDM/"+this.episodio.getSerie().getTitulo()+"/"+episodio.getTemporada().getNro()+"/";
+            new File(path).mkdirs();
+
+            file = new RandomAccessFile(path+getFileName(url), "rw");
+
             file.seek(downloaded);
-             
+
             stream = connection.getInputStream();
             initTime = System.nanoTime();
             while (status == DOWNLOADING) {
@@ -206,7 +221,7 @@ class Download extends Observable implements Runnable {
                 }
                 stateChanged();
             }
-             
+
       /* Change status to complete if this point was
          reached because downloading has finished. */
             if (status == DOWNLOADING) {
@@ -220,10 +235,11 @@ class Download extends Observable implements Runnable {
             // Close file.
             if (file != null) {
                 try {
+
                     file.close();
                 } catch (Exception e) {}
             }
-             
+
             // Close connection to server.
             if (stream != null) {
                 try {
@@ -236,6 +252,6 @@ class Download extends Observable implements Runnable {
     // Notify observers that this download's status has changed.
     private void stateChanged() {
         setChanged();
-        notifyObservers();
+        notifyObservers(this);
     }
 }
